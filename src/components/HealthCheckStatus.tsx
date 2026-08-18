@@ -21,15 +21,7 @@ export function HealthCheckStatus({
 
   // Idle state
   if (status.status === 'idle') {
-    return (
-      <MilleniumPanel variant="card">
-        <div className="flex items-center justify-center py-8">
-          <p className="text-gray-600">
-            Import a file to perform data validation
-          </p>
-        </div>
-      </MilleniumPanel>
-    );
+    return null;
   }
 
   // Loading state

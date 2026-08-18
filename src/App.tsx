@@ -2,24 +2,126 @@
  * Millenium Data Filter & Converter
  */
 
+import { useState } from 'react';
 import { HealthCheckStatus } from './components/HealthCheckStatus';
 import { FileDropzone } from './components/FileDropzone';
-import { PresetFilterButtons } from './components/PresetFilterButtons';
-import { ResultsSummary } from './components/ResultsSummary';
+import { CfopFilterButtons } from './components/CfopFilterButtons';
+import { DocumentFilterButtons } from './components/DocumentFilterButtons';
+import { SeriesFilterButtons } from './components/SeriesFilterButtons';
 import { DataGrid } from './components/DataGrid';
 import { MilleniumPanel } from './components/MilleniumPanel';
 import { useHealthCheck } from './hooks/useHealthCheck';
 import { useFileParser } from './hooks/useFileParser';
 import { useFilterPresets } from './hooks/useFilterPresets';
 import { useCfopFilter } from './hooks/useCfopFilter';
+import { useDocumentFilter } from './hooks/useDocumentFilter';
+import { useSeriesFilter } from './hooks/useSeriesFilter';
+import { validateCPFCNPJ } from './engine/schemaValidator';
 import './index.css';
+
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value
+      .replace(/\./g, '')
+      .replace(',', '.')
+      .trim();
+
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const formatClipboardNumber = (value: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 
 function App() {
   const { status, runHealthCheck, reset } = useHealthCheck();
   const fileParser = useFileParser();
   const filterPresets = useFilterPresets(fileParser.data);
-  const { cfopFilter, selectSingleCfop, deselectAll } =
+  const { cfopFilter, toggleCfop } =
     useCfopFilter(fileParser.data || []);
+  const { documentFilter, toggleDocumentType } =
+    useDocumentFilter(fileParser.data || []);
+  const { seriesFilter, toggleSerie } = useSeriesFilter(fileParser.data || []);
+
+  const filteredRows =
+    fileParser.data?.filter((row) => {
+      const selectedCfops = cfopFilter.selectedCfops;
+      const selectedDocumentTypes = documentFilter.selectedDocumentTypes;
+      const selectedSeries = seriesFilter.selectedSeries;
+
+      const matchesCfop =
+        selectedCfops.length === 0 ||
+        selectedCfops.includes(String(row['Cfop'] || '').trim());
+
+      const documentValue = row['Cnpj/Cpf Destinatário'];
+      const documentValidation = validateCPFCNPJ(
+        documentValue === null || documentValue === undefined
+          ? ''
+          : String(documentValue)
+      );
+
+      const matchesDocumentType =
+        selectedDocumentTypes.length === 0 ||
+        (documentValidation.isValid &&
+          documentValidation.documentType !== 'unknown' &&
+          selectedDocumentTypes.includes(documentValidation.documentType));
+
+      const matchesSeries =
+        selectedSeries.length === 0 ||
+        selectedSeries.includes(String(row['Série'] || '').trim());
+
+      return matchesCfop && matchesDocumentType && matchesSeries;
+    }) || [];
+
+  const filteredTotals = filteredRows.reduce<{
+    valor: number;
+    baseIcms: number;
+    valorIcms: number;
+  }>(
+    (acc, row) => {
+      acc.valor += toNumber(row['Valor']);
+      acc.baseIcms += toNumber(row['Base Icms']);
+      acc.valorIcms += toNumber(row['Valor Icms']);
+      return acc;
+    },
+    { valor: 0, baseIcms: 0, valorIcms: 0 }
+  );
+
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = async (key: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKey(key);
+
+      window.setTimeout(() => {
+        setCopiedKey((current) => (current === key ? null : current));
+      }, 1200);
+    } catch {
+      setCopiedKey(key);
+      window.setTimeout(() => {
+        setCopiedKey((current) => (current === key ? null : current));
+      }, 1200);
+    }
+  };
 
   const handleFileSelect = async (file: File) => {
     const result = await fileParser.parseFile(file);
@@ -30,16 +132,13 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
-      <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 px-3 py-4">
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Millenium Data Filter
+        <div className="mb-8" style={{ paddingLeft: '6px', marginLeft: '24px' }}>
+          <h1 className=" text-4xl font-bold text-gray-900 mb-2 tracking-tight">
+            Millenium Filter
           </h1>
-          <p className="text-gray-600 text-lg">
-            Enviar • Validar • Filtrar • Visualizar
-          </p>
         </div>
 
         {/* File Import with Validation */}
@@ -55,12 +154,7 @@ function App() {
 
             {/* Validation Status */}
             {fileParser.data && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Resultados da Validação
-                </h3>
-                <HealthCheckStatus status={status} onDismiss={reset} />
-              </div>
+              <HealthCheckStatus status={status} onDismiss={reset} />
             )}
 
             {/* Error Messages */}
@@ -111,108 +205,24 @@ function App() {
         {fileParser.data && fileParser.data.length > 0 && (
           <MilleniumPanel variant="default">
             <div className="space-y-6">
-              {/* Filters Section - Presets + CFOP */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '16px' }}>
-                {/* Preset Filters */}
-                <div>
-                  <PresetFilterButtons
-                    activePreset={filterPresets.activePreset}
-                    onSelectPreset={filterPresets.selectPreset}
-                    onExecute={filterPresets.executeActivePreset}
-                    isExecuting={filterPresets.isExecuting}
-                  />
-                </div>
+              {/* Filters Section - Accumulative filters */}
+              <div className="space-y-4">
+                <CfopFilterButtons
+                  data={fileParser.data}
+                  selectedCfops={cfopFilter.selectedCfops}
+                  onToggleCfop={toggleCfop}
+                />
 
-                {/* CFOP Dropdown Filter */}
-                <div
-                  style={{
-                    backgroundColor: '#faf5ff',
-                    padding: '16px',
-                    borderRadius: '6px',
-                    border: '1px solid #e9d5ff',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <label
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#581c87',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    Filtrar por CFOP
-                  </label>
-                  <select
-                    value={cfopFilter.selectedCfops[0] || ''}
-                    onChange={(e) => {
-                      const newCfop = e.target.value;
-                      if (newCfop) {
-                        selectSingleCfop(newCfop);
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '4px',
-                      border: '1px solid #e9d5ff',
-                      backgroundColor: 'white',
-                      color: '#581c87',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="">-- Todos os CFOPs --</option>
-                    {(() => {
-                      if (!fileParser.data || fileParser.data.length === 0) {
-                        console.log('DEBUG: fileParser.data is empty or undefined');
-                        return [];
-                      }
-                      
-                      console.log('DEBUG: fileParser.data exists, rows:', fileParser.data.length);
-                      
-                      const cfops = Array.from(
-                        new Set(
-                          fileParser.data
-                            .map((row) => {
-                              const cfopValue = row['Cfop'];
-                              if (cfopValue === null || cfopValue === undefined) return null;
-                              return String(cfopValue).trim();
-                            })
-                            .filter((cfop): cfop is string => cfop !== null && cfop !== '')
-                        )
-                      ).sort();
-                      
-                      console.log('DEBUG: CFOPs found:', cfops);
-                      
-                      return cfops.map((cfop) => (
-                        <option key={cfop} value={cfop}>
-                          {cfop}
-                        </option>
-                      ));
-                    })()}
-                  </select>
-                  {cfopFilter.selectedCfops.length > 0 && (
-                    <div
-                      style={{
-                        marginTop: '8px',
-                        fontSize: '12px',
-                        color: '#9333ea',
-                        fontWeight: '500',
-                      }}
-                    >
-                      Selecionado: {cfopFilter.selectedCfops[0]}
-                    </div>
-                  )}
-                </div>
+                <DocumentFilterButtons
+                  data={fileParser.data}
+                  selectedDocumentTypes={documentFilter.selectedDocumentTypes}
+                  onToggleDocumentType={toggleDocumentType}
+                />
 
-                {/* Results Summary */}
-                <ResultsSummary
-                  {...filterPresets.getSummaryStats()}
-                  results={filterPresets.results}
+                <SeriesFilterButtons
+                  data={fileParser.data}
+                  selectedSeries={seriesFilter.selectedSeries}
+                  onToggleSerie={toggleSerie}
                 />
               </div>
 
@@ -232,124 +242,130 @@ function App() {
                 </div>
               )}
 
-              {/* CFOP Result if selected */}
-              {cfopFilter.selectedCfops.length > 0 && (
+              {(cfopFilter.selectedCfops.length > 0 ||
+                documentFilter.selectedDocumentTypes.length > 0 ||
+                seriesFilter.selectedSeries.length > 0) && (
                 <div
                   style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '12px',
+                    padding: '16px',
                     backgroundColor: '#faf5ff',
+                    borderRadius: '8px',
                     border: '1px solid #e9d5ff',
-                    padding: '12px',
-                    borderRadius: '6px',
                   }}
                 >
-                  {cfopFilter.cfopSummaries.map((summary) => (
-                    <div key={summary.cfop}>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr 1fr',
-                          gap: '12px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            backgroundColor: 'white',
-                            padding: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid #e9d5ff',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '11px',
-                              color: '#9333ea',
-                              fontWeight: '600',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            Valor Total
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              color: '#581c87',
-                            }}
-                          >
-                            {new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            }).format(summary.totalValue)}
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            backgroundColor: 'white',
-                            padding: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid #e9d5ff',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '11px',
-                              color: '#9333ea',
-                              fontWeight: '600',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            Quantidade NFes
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              color: '#581c87',
-                            }}
-                          >
-                            {summary.count}
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            backgroundColor: 'white',
-                            padding: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid #e9d5ff',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '11px',
-                              color: '#9333ea',
-                              fontWeight: '600',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            Valor Médio
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              color: '#581c87',
-                            }}
-                          >
-                            {new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            }).format(
-                              summary.count > 0
-                                ? summary.totalValue / summary.count
-                                : 0
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                  <div
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#fff',
+                      borderRadius: '6px',
+                      border: '1px solid #e9d5ff',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                      Valor Total
                     </div>
-                  ))}
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: '#9333ea' }}>
+                      {formatCurrency(filteredTotals.valor)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard('valor', formatClipboardNumber(filteredTotals.valor))
+                      }
+                      style={{
+                        marginTop: '8px',
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid #c084fc',
+                        backgroundColor: copiedKey === 'valor' ? '#dcfce7' : '#f5f3ff',
+                        color: copiedKey === 'valor' ? '#166534' : '#6b21a8',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {copiedKey === 'valor' ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#fff',
+                      borderRadius: '6px',
+                      border: '1px solid #e9d5ff',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                      Base Icms
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: '#9333ea' }}>
+                      {formatCurrency(filteredTotals.baseIcms)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(
+                          'baseIcms',
+                          formatClipboardNumber(filteredTotals.baseIcms)
+                        )
+                      }
+                      style={{
+                        marginTop: '8px',
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid #c084fc',
+                        backgroundColor: copiedKey === 'baseIcms' ? '#dcfce7' : '#f5f3ff',
+                        color: copiedKey === 'baseIcms' ? '#166534' : '#6b21a8',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {copiedKey === 'baseIcms' ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#fff',
+                      borderRadius: '6px',
+                      border: '1px solid #e9d5ff',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                      Valor Icms
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: '#9333ea' }}>
+                      {formatCurrency(filteredTotals.valorIcms)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(
+                          'valorIcms',
+                          formatClipboardNumber(filteredTotals.valorIcms)
+                        )
+                      }
+                      style={{
+                        marginTop: '8px',
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid #c084fc',
+                        backgroundColor: copiedKey === 'valorIcms' ? '#dcfce7' : '#f5f3ff',
+                        color: copiedKey === 'valorIcms' ? '#166534' : '#6b21a8',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {copiedKey === 'valorIcms' ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
                 </div>
               )}
 

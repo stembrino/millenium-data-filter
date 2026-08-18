@@ -82,8 +82,12 @@ function normalizeRowData(row: any): RowData {
     } else if (typeof value === 'string') {
       const trimmed = value.trim();
 
-      // Don't convert CNPJ/CPF fields to numbers - they have dots/slashes/dashes
+      // Don't convert certain fields to numbers - they need to stay as strings
+      // CFOP has dots and must preserve format (5.101 not 5.1)
+      // CPF/CNPJ have dots/slashes/dashes
       if (
+        cleanKey === 'Cfop' ||
+        cleanKey === 'Série' ||
         cleanKey === 'Cnpj/Cpf Destinatário' ||
         cleanKey === 'Inscr. Estadual Destinatário' ||
         cleanKey === 'Chave NFe'

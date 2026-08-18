@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isValidFileFormat, getSupportedFormats } from '../engine/fileParser';
+import {
+  isValidFileFormat,
+  getSupportedFormats,
+  parseFileToJSON,
+} from '../engine/fileParser';
 
 describe('File Parser - fileParser.ts', () => {
   describe('getSupportedFormats', () => {
@@ -34,6 +38,21 @@ describe('File Parser - fileParser.ts', () => {
     it('should be case insensitive', () => {
       expect(isValidFileFormat('data.XLSX')).toBe(true);
       expect(isValidFileFormat('data.Csv')).toBe(true);
+    });
+  });
+
+  describe('parseFileToJSON', () => {
+    it('should preserve string-like identifier fields such as Cfop and Série', () => {
+      const csv = `Cfop,Série,Valor\n5101,001,123.45`;
+      const buffer = new TextEncoder().encode(csv).buffer;
+
+      const result = parseFileToJSON(buffer, 'sample.csv');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.[0]?.Cfop).toBe('5101');
+      expect(result.data?.[0]?.['Série']).toBe('001');
+      expect(typeof result.data?.[0]?.Cfop).toBe('string');
+      expect(typeof result.data?.[0]?.['Série']).toBe('string');
     });
   });
 });
