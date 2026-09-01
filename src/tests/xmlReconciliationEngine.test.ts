@@ -43,7 +43,7 @@ describe("XML Reconciliation engine", () => {
 
     expect(result.totalAnalyzableExcelRows).toBe(1);
     expect(result.missingImportedInvoices).toHaveLength(0);
-    expect(result.missingLaunchedInvoices).toHaveLength(1);
+    expect(result.missingLaunchedInvoices).toHaveLength(0);
   });
 
   it("ignores rows with the current date and preserves the original Excel data", () => {
@@ -72,8 +72,8 @@ describe("XML Reconciliation engine", () => {
     const result = runReconciliation(excelRows, [], []);
 
     expect(result.totalAnalyzableExcelRows).toBe(1);
-    expect(result.missingImportedInvoices).toHaveLength(1);
-    expect(result.missingImportedInvoices[0].rawRowData["Num NFe"]).toBe("000996");
+    expect(result.missingImportedInvoices).toHaveLength(0);
+    expect(result.missingLaunchedInvoices).toHaveLength(0);
   });
 
   it("includes the current day when the user explicitly enables it", () => {
@@ -102,7 +102,8 @@ describe("XML Reconciliation engine", () => {
     const result = runReconciliation(excelRows, [], [], true);
 
     expect(result.totalAnalyzableExcelRows).toBe(2);
-    expect(result.missingImportedInvoices).toHaveLength(2);
+    expect(result.missingImportedInvoices).toHaveLength(0);
+    expect(result.missingLaunchedInvoices).toHaveLength(0);
   });
 
   it("parses XML files into the exact SIEG-compatible fields", async () => {
@@ -155,6 +156,41 @@ describe("XML Reconciliation engine", () => {
     expect(parsed?.issuerName).toBe("ANDREIA VAZ DOS SANTOS CONFECCCOES");
     expect(parsed?.compositeKey).toBe("995_57920024000186");
     expect(parsed?.nfeKey).toBe("43260199500000123456789012345678901234567890");
+  });
+
+  it("parses cancellation/event XMLs by extracting the invoice number from the NFe key", async () => {
+    const xmlFile = new File(
+      [
+        `<?xml version="1.0" encoding="UTF-8"?>
+        <procEventoNFe versao="1.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+          <evento versao="1.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+            <infEvento Id="ID1101113526085152653000010955001000001169150127892001">
+              <cOrgao>35</cOrgao>
+              <tpAmb>1</tpAmb>
+              <CNPJ>51526530000109</CNPJ>
+              <chNFe>35260851526530000109550010000011691501278920</chNFe>
+              <dhEvento>2026-08-20T14:29:24-03:00</dhEvento>
+              <tpEvento>110111</tpEvento>
+              <nSeqEvento>1</nSeqEvento>
+              <verEvento>1.00</verEvento>
+              <detEvento versao="1.00">
+                <descEvento>Cancelamento</descEvento>
+              </detEvento>
+            </infEvento>
+          </evento>
+        </procEventoNFe>`,
+      ],
+      "1169 Cancelada.xml",
+      { type: "application/xml" },
+    );
+
+    const parsed = await parseXmlFile(xmlFile);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.invoiceNumber).toBe("1169");
+    expect(parsed?.issuerCnpj).toBe("51526530000109");
+    expect(parsed?.issueDate).toBe("2026-08-20");
+    expect(parsed?.nfeKey).toBe("35260851526530000109550010000011691501278920");
   });
 
   it("parses the SIEG Cofre Excel format into invoice records", async () => {

@@ -5,6 +5,16 @@ const sanitizeInvoiceNumber = (value: string): string =>
 
 const sanitizeCnpj = (value: string): string => value.replace(/\D/g, "").trim();
 
+const extractInvoiceNumberFromChNfe = (chNFe: string): string => {
+  const cleanKey = chNFe.replace(/\s+/g, "").trim();
+
+  if (cleanKey.length >= 44) {
+    return sanitizeInvoiceNumber(cleanKey.slice(25, 34));
+  }
+
+  return "";
+};
+
 export const parseXmlFile = async (
   file: File,
 ): Promise<XmlInvoiceRecord | null> => {
@@ -15,15 +25,22 @@ export const parseXmlFile = async (
 
     const nNF = xmlDoc.getElementsByTagName("nNF")[0]?.textContent || "";
     const cnpj = xmlDoc.getElementsByTagName("CNPJ")[0]?.textContent || "";
-    const xNome = xmlDoc.getElementsByTagName("xNome")[0]?.textContent || "";
+    const xNome =
+      xmlDoc.getElementsByTagName("xNome")[0]?.textContent ||
+      xmlDoc.getElementsByTagName("xFant")[0]?.textContent ||
+      "";
     const dhEmi = xmlDoc.getElementsByTagName("dhEmi")[0]?.textContent || "";
+    const dhEvento =
+      xmlDoc.getElementsByTagName("dhEvento")[0]?.textContent || "";
     const chNFe = xmlDoc.getElementsByTagName("chNFe")[0]?.textContent || "";
 
-    if (!nNF || !cnpj) return null;
-
-    const invoiceNumber = sanitizeInvoiceNumber(nNF);
+    const rawInvoiceNumber = nNF || extractInvoiceNumberFromChNfe(chNFe);
     const issuerCnpj = sanitizeCnpj(cnpj);
-    const issueDate = dhEmi ? dhEmi.split("T")[0] : "";
+
+    if (!rawInvoiceNumber || !issuerCnpj) return null;
+
+    const invoiceNumber = sanitizeInvoiceNumber(rawInvoiceNumber);
+    const issueDate = (dhEmi || dhEvento || "").split("T")[0];
 
     return {
       invoiceNumber,
