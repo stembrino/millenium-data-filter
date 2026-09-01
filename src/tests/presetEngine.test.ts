@@ -9,8 +9,8 @@ import {
   executeHideZeroStock,
   executeInvalidDocumentCheck,
   executePreset,
-} from '../engine/presetEngine';
-import type { RowData } from '../types/milenium';
+} from '../features/MilleniumDataFilter/engine/presetEngine';
+import type { RowData } from '../features/MilleniumDataFilter/types/milenium';
 
 const sampleData: RowData[] = [
   {

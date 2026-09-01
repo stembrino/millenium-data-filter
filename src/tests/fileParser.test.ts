@@ -7,7 +7,7 @@ import {
   isValidFileFormat,
   getSupportedFormats,
   parseFileToJSON,
-} from '../engine/fileParser';
+} from '../features/MilleniumDataFilter/engine/fileParser';
 
 describe('File Parser - fileParser.ts', () => {
   describe('getSupportedFormats', () => {
