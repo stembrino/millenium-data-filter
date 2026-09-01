@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest';
 import {
   extractUniqueDocumentTypes,
   filterByDocumentTypes,
-} from '../features/MilleniumDataFilter/engine/documentFilterEngine';
-import type { RowData } from '../features/MilleniumDataFilter/types/milenium';
+} from '../engine/documentFilterEngine';
+import type { RowData } from '../types/milenium';
 
 const sampleData: RowData[] = [
   {

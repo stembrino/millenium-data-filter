@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { RowData } from '../features/MilleniumDataFilter/types/milenium';
+import type { RowData } from '../types/milenium';
 import {
   validateCPFCNPJ,
   detectEmptyRows,
@@ -12,7 +12,7 @@ import {
   detectCorruptRows,
   performSchemaCheck,
   validateMileniumSchema,
-} from '../features/MilleniumDataFilter/engine/schemaValidator';
+} from '../engine/schemaValidator';
 
 describe('validateCPFCNPJ', () => {
   it('should validate a correct CPF', () => {
