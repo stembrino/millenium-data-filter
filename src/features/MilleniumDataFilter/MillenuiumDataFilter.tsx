@@ -17,7 +17,7 @@ import { useCfopFilter } from "./hooks/useCfopFilter";
 import { useDocumentFilter } from "./hooks/useDocumentFilter";
 import { useSeriesFilter } from "./hooks/useSeriesFilter";
 import { validateCPFCNPJ } from "./engine/schemaValidator";
-import "./index.css";
+import "../../index.css";
 
 const toNumber = (value: unknown): number => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -131,16 +131,6 @@ function MilleniumDataFilter() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 px-3 py-4">
       <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div
-          className="mb-8"
-          style={{ paddingLeft: "6px", marginLeft: "24px" }}
-        >
-          <h1 className=" text-4xl font-bold text-gray-900 mb-2 tracking-tight">
-            Millenium Filter
-          </h1>
-        </div>
-
         {/* File Import with Validation */}
         <MilleniumPanel variant="default">
           <div className="space-y-6">
