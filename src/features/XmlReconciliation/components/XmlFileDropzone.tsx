@@ -1,12 +1,14 @@
 import type { ChangeEvent, DragEvent, ReactNode } from "react";
 
 interface XmlFileDropzoneProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (files: File[]) => void;
   children?: ReactNode;
   compact?: boolean;
   accept?: string;
   acceptText?: string;
   backgroundColor?: string;
+  multiple?: boolean;
+  directory?: boolean;
 }
 
 export function XmlFileDropzone({
@@ -16,6 +18,8 @@ export function XmlFileDropzone({
   accept = ".xml,application/xml,text/xml",
   acceptText = "Suportados: .xml (Máximo 10MB)",
   backgroundColor = "#faf5ff",
+  multiple = false,
+  directory = false,
 }: XmlFileDropzoneProps) {
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -26,17 +30,18 @@ export function XmlFileDropzone({
     event.preventDefault();
     event.stopPropagation();
 
-    const file = event.dataTransfer.files?.[0];
-    if (file) {
-      onFileSelect(file);
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length > 0) {
+      onFileSelect(files);
     }
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    if (file) {
-      onFileSelect(file);
-    }
+    const files = Array.from(event.currentTarget.files ?? []);
+    if (files.length === 0) return;
+
+    onFileSelect(files);
+    event.currentTarget.value = "";
   };
 
   return (
@@ -63,7 +68,11 @@ export function XmlFileDropzone({
       <input
         type="file"
         accept={accept}
+        multiple={multiple}
         onChange={handleInputChange}
+        {...(directory
+          ? ({ webkitdirectory: "", directory: "" } as Record<string, string>)
+          : {})}
         style={{
           position: "absolute",
           inset: 0,

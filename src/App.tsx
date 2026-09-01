@@ -5,7 +5,7 @@ import "./index.css";
 import "./App.css";
 
 const views: Array<{ to: string; label: string }> = [
-  { to: "/millenium-data-filter", label: "Millenium Filter" },
+  { to: "/", label: "Millenium Filter" },
   { to: "/xml-reconciliation", label: "XML Reconciliation" },
 ];
 
@@ -38,15 +38,9 @@ function App() {
         </div>
 
         <Routes>
-          <Route
-            path="/millenium-data-filter"
-            element={<MilleniumDataFilter />}
-          />
+          <Route path="/" element={<MilleniumDataFilter />} />
           <Route path="/xml-reconciliation" element={<XmlReconciliation />} />
-          <Route
-            path="*"
-            element={<Navigate to="//millenium-data-filter" replace />}
-          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </div>

@@ -1,5 +1,10 @@
 import type { XmlInvoiceRecord } from "../types/reconciliation";
 
+const sanitizeInvoiceNumber = (value: string): string =>
+  value.replace(/[^\d]/g, "").replace(/^0+/, "").trim();
+
+const sanitizeCnpj = (value: string): string => value.replace(/\D/g, "").trim();
+
 export const parseXmlFile = async (
   file: File,
 ): Promise<XmlInvoiceRecord | null> => {
@@ -8,23 +13,26 @@ export const parseXmlFile = async (
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
-    const nNF =
-      xmlDoc.getElementsByTagName("nNF")[0]?.textContent || "";
-    const cnpj =
-      xmlDoc.getElementsByTagName("CNPJ")[0]?.textContent || "";
-    const xNome =
-      xmlDoc.getElementsByTagName("xNome")[0]?.textContent || "";
+    const nNF = xmlDoc.getElementsByTagName("nNF")[0]?.textContent || "";
+    const cnpj = xmlDoc.getElementsByTagName("CNPJ")[0]?.textContent || "";
+    const xNome = xmlDoc.getElementsByTagName("xNome")[0]?.textContent || "";
+    const dhEmi = xmlDoc.getElementsByTagName("dhEmi")[0]?.textContent || "";
+    const chNFe = xmlDoc.getElementsByTagName("chNFe")[0]?.textContent || "";
 
-    if (!nNF) return null;
+    if (!nNF || !cnpj) return null;
 
-    const cleanInvoiceNumber = nNF.replace(/^0+/, "");
-    const cleanIssuer = (cnpj || xNome).trim().toUpperCase();
+    const invoiceNumber = sanitizeInvoiceNumber(nNF);
+    const issuerCnpj = sanitizeCnpj(cnpj);
+    const issueDate = dhEmi ? dhEmi.split("T")[0] : "";
 
     return {
-      invoiceNumber: cleanInvoiceNumber,
-      issuerIdentifier: cleanIssuer,
+      invoiceNumber,
+      issuerCnpj,
+      issuerName: xNome.trim().toUpperCase(),
+      issueDate,
       fileName: file.name,
-      compositeKey: `${cleanInvoiceNumber}_${cleanIssuer}`,
+      nfeKey: chNFe.trim() || undefined,
+      compositeKey: `${invoiceNumber}_${issuerCnpj}`,
     };
   } catch {
     return null;
