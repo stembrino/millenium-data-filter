@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { parseExcelFile } from "../engine/excelParser";
+import { parseExcludedDays } from "../engine/xmlReconciliationEngine";
 import { parseXmlFile } from "../engine/xmlParser";
 import { runReconciliation } from "../engine/xmlReconciliationEngine";
 import { XmlFileDropzone } from "./XmlFileDropzone";
@@ -17,6 +18,7 @@ export function ReconciliationPanel() {
   const [importedFilesCount, setImportedFilesCount] = useState(0);
   const [launchedFilesCount, setLaunchedFilesCount] = useState(0);
   const [includeTodayInAnalysis, setIncludeTodayInAnalysis] = useState(false);
+  const [excludedDaysInput, setExcludedDaysInput] = useState("");
   const [copiedColumn, setCopiedColumn] = useState<
     "imported" | "launched" | null
   >(null);
@@ -50,6 +52,7 @@ export function ReconciliationPanel() {
         importedXmls,
         launchedXmls,
         includeTodayInAnalysis,
+        parseExcludedDays(excludedDaysInput),
       ),
     );
   };
@@ -186,18 +189,6 @@ export function ReconciliationPanel() {
               {excelRowsCount > 0 && `${excelRowsCount} linhas carregadas`}
             </p>
           </XmlFileDropzone>
-
-          <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={includeTodayInAnalysis}
-              onChange={(event) =>
-                setIncludeTodayInAnalysis(event.target.checked)
-              }
-              className="h-4 w-4 rounded border-slate-300 text-[#1a73e8] focus:ring-[#1a73e8]"
-            />
-            Incluir o dia atual no relatório Excel
-          </label>
         </div>
 
         <div>
@@ -251,6 +242,44 @@ export function ReconciliationPanel() {
             </p>
           </XmlFileDropzone>
         </div>
+      </div>
+
+      <div className=" bg-blue-50/50 p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#1a73e8]">
+          Filtros da análise
+        </p>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={includeTodayInAnalysis}
+            onChange={(event) =>
+              setIncludeTodayInAnalysis(event.target.checked)
+            }
+            className="h-4 w-4 rounded border-slate-300 text-[#1a73e8] focus:ring-[#1a73e8]"
+          />
+          Incluir o dia atual no relatório Excel
+        </label>
+        <label
+          className="mt-3 block text-sm font-medium text-slate-700"
+          title="Atenção: os dias informados serão excluídos em todos os meses. Este filtro não considera o mês."
+        >
+          Excluir dias do mês
+          <input
+            type="text"
+            value={excludedDaysInput}
+            onChange={(event) => setExcludedDaysInput(event.target.value)}
+            placeholder="Ex.: 31, 2, 4"
+            aria-describedby="excluded-days-warning"
+            className="mt-1 block w-full max-w-[220px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#1a73e8] focus:ring-2 focus:ring-blue-100"
+          />
+          <span
+            id="excluded-days-warning"
+            className="mt-1 block text-[11px] font-normal italic text-amber-700"
+          >
+            Atenção: todos os meses serão considerados. O filtro exclui o dia
+            informado independentemente do mês.
+          </span>
+        </label>
       </div>
 
       <div
@@ -332,7 +361,7 @@ export function ReconciliationPanel() {
                     "imported",
                   )
                 }
-                className="inline-flex h-6 min-w-[64px] items-center justify-center rounded border border-red-200 bg-red-50 px-1.5 text-[9px] font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100"
+                className="inline-flex h-6 min-w-[16px] items-center justify-center rounded border border-red-200 bg-red-50 px-1.5 text-[12px] font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100"
                 aria-label="Copiar todas as notas faltantes"
                 title="Copiar todas as notas"
               >
@@ -386,7 +415,7 @@ export function ReconciliationPanel() {
                     "launched",
                   )
                 }
-                className="inline-flex h-6 min-w-[64px] items-center justify-center rounded border border-amber-200 bg-amber-50 px-1.5 text-[9px] font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
+                className="inline-flex h-6 min-w-[16px] items-center justify-center rounded border border-amber-200 bg-amber-50 px-1.5 text-[12px] font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
                 aria-label="Copiar todas as notas faltantes"
                 title="Copiar todas as notas"
               >

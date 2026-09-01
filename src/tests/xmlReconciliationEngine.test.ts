@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { parseExcelFile } from "../features/XmlReconciliation/engine/excelParser";
 import { parseXmlFile } from "../features/XmlReconciliation/engine/xmlParser";
-import { runReconciliation } from "../features/XmlReconciliation/engine/xmlReconciliationEngine";
+import {
+  parseExcludedDays,
+  runReconciliation,
+} from "../features/XmlReconciliation/engine/xmlReconciliationEngine";
 import type { ExcelInvoiceRecord } from "../features/XmlReconciliation/types/reconciliation";
 
 describe("XML Reconciliation engine", () => {
@@ -104,6 +107,58 @@ describe("XML Reconciliation engine", () => {
     expect(result.totalAnalyzableExcelRows).toBe(2);
     expect(result.missingImportedInvoices).toHaveLength(0);
     expect(result.missingLaunchedInvoices).toHaveLength(0);
+  });
+
+  it("parses comma-separated days and excludes them regardless of month", () => {
+    expect(parseExcludedDays("31, 2,4, 2, 0, 32, x")).toEqual([2, 4, 31]);
+
+    const excelRows: ExcelInvoiceRecord[] = [
+      {
+        invoiceNumber: "1",
+        issuerCnpj: "57920024000186",
+        issuerName: "TESTE",
+        issueDate: "2026-08-31",
+        rawRowData: {},
+        compositeKey: "1_57920024000186",
+      },
+      {
+        invoiceNumber: "2",
+        issuerCnpj: "57920024000186",
+        issuerName: "TESTE",
+        issueDate: "2026-09-02",
+        rawRowData: {},
+        compositeKey: "2_57920024000186",
+      },
+      {
+        invoiceNumber: "3",
+        issuerCnpj: "57920024000186",
+        issuerName: "TESTE",
+        issueDate: "2026-09-03",
+        rawRowData: {},
+        compositeKey: "3_57920024000186",
+      },
+    ];
+
+    const result = runReconciliation(
+      excelRows,
+      [
+        {
+          invoiceNumber: "0",
+          issuerCnpj: "57920024000186",
+          issuerName: "TESTE",
+          issueDate: "2026-08-01",
+          fileName: "imported.xml",
+          compositeKey: "0_57920024000186",
+        },
+      ],
+      [],
+      true,
+      parseExcludedDays("31, 2,4"),
+    );
+
+    expect(result.totalAnalyzableExcelRows).toBe(1);
+    expect(result.missingImportedInvoices).toHaveLength(1);
+    expect(result.missingImportedInvoices[0].invoiceNumber).toBe("3");
   });
 
   it("parses XML files into the exact SIEG-compatible fields", async () => {
