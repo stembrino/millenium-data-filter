@@ -1,12 +1,14 @@
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import MilleniumDataFilter from "./features/MilleniumDataFilter/MillenuiumDataFilter";
 import XmlReconciliation from "./features/XmlReconciliation/XmlReconciliation";
+import WindowsScriptGenerator from "./features/WindowsScriptGenerator/WindowsScriptGenerator";
 import "./index.css";
 import "./App.css";
 
 const views: Array<{ to: string; label: string }> = [
   { to: "/", label: "Millenium Filter" },
   { to: "/xml-reconciliation", label: "XML Reconciliation" },
+  { to: "/windows-script-generator", label: "Windows Script Generator" },
 ];
 
 function App() {
@@ -40,6 +42,10 @@ function App() {
         <Routes>
           <Route path="/" element={<MilleniumDataFilter />} />
           <Route path="/xml-reconciliation" element={<XmlReconciliation />} />
+          <Route
+            path="/windows-script-generator"
+            element={<WindowsScriptGenerator />}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
