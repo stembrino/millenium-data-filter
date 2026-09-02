@@ -42,7 +42,11 @@ function WindowsScriptGeneratorPanel() {
       "setlocal",
       "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand " +
         encodedCommand,
-      "exit /b %ERRORLEVEL%",
+      'set "PowerShellExitCode=%ERRORLEVEL%"',
+      "echo.",
+      "echo Processo finalizado. Codigo de saida: %PowerShellExitCode%",
+      "pause",
+      "exit /b %PowerShellExitCode%",
     ].join("\r\n");
     const scriptBlob = new Blob([commandScript], {
       type: "application/bat;charset=utf-8",
