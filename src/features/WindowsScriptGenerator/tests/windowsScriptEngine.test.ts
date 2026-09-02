@@ -30,6 +30,16 @@ describe("generateWindowsMoveScript", () => {
     expect(result.content).toContain('$dots = "." * $counter');
     expect(result.content).toContain("$movedCount++");
     expect(result.content).toContain("$missingCount++");
+    expect(result.content).toContain('$duplicateCount = 0');
+    expect(result.content).toContain(
+      '$matchingFiles = @(Get-ChildItem -LiteralPath $SourceDir -File | Where-Object { $_.Name -match $duplicatePattern })',
+    );
+    expect(result.content).toContain("if ($matchingFiles.Count -gt 1)");
+    expect(result.content).toContain(
+      'AVISO: O arquivo $baseName esta repetido $($matchingFiles.Count) vezes, nao sera movido.',
+    );
+    expect(result.content).toContain("$duplicateCount++");
+    expect(result.content).toContain("continue");
   });
 
   it("waits for both folders before generating a script", () => {
