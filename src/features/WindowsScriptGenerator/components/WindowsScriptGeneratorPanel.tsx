@@ -55,7 +55,7 @@ function WindowsScriptGeneratorPanel() {
     const downloadLink = document.createElement("a");
 
     downloadLink.href = downloadUrl;
-    downloadLink.download = "copiar-arquivos-xml.cmd";
+    downloadLink.download = "mover-arquivos-xml.cmd";
     document.body.appendChild(downloadLink);
     downloadLink.click();
     downloadLink.remove();
@@ -88,7 +88,7 @@ function WindowsScriptGeneratorPanel() {
                 />
               </label>
               <label className="block text-sm font-semibold text-slate-700">
-                Files to copy
+                Files to move
                 <textarea
                   value={criteria.fileNames.join("\n")}
                   onChange={(event) => updateFileNames(event.target.value)}

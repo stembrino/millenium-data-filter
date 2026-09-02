@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { generateWindowsCopyScript } from "../engine/windowsScriptEngine";
+import { generateWindowsMoveScript } from "../engine/windowsScriptEngine";
 
-describe("generateWindowsCopyScript", () => {
+describe("generateWindowsMoveScript", () => {
   it("generates the PowerShell script and defaults names to XML", () => {
-    const result = generateWindowsCopyScript({
+    const result = generateWindowsMoveScript({
       sourcePath: String.raw`C:\Files\Source`,
       destinationPath: String.raw`C:\Files\Destination`,
       fileNames: ["invoice", "report.xml"],
@@ -15,7 +15,7 @@ describe("generateWindowsCopyScript", () => {
     expect(result.content).toContain("foreach ($fileName in $files)");
     expect(result.content).toContain("[System.IO.File]::Exists($resolvedTarget)");
     expect(result.content).toContain(
-      "[System.IO.File]::Copy($resolvedSource, $resolvedTarget, $true)",
+      "[System.IO.File]::Move($resolvedSource, $resolvedTarget)",
     );
     expect(result.content).toContain("try {");
     expect(result.content).toContain('$failedCount++');
@@ -28,12 +28,12 @@ describe("generateWindowsCopyScript", () => {
     );
     expect(result.content).toContain('Write-Host "Operacao cancelada."');
     expect(result.content).toContain('$dots = "." * $counter');
-    expect(result.content).toContain("$copiedCount++");
+    expect(result.content).toContain("$movedCount++");
     expect(result.content).toContain("$missingCount++");
   });
 
   it("waits for both folders before generating a script", () => {
-    const result = generateWindowsCopyScript({
+    const result = generateWindowsMoveScript({
       sourcePath: "",
       destinationPath: String.raw`C:\Files\Destination`,
       fileNames: ["invoice.csv"],

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateWindowsCopyScript } from "../engine/windowsScriptEngine";
+import { generateWindowsMoveScript } from "../engine/windowsScriptEngine";
 import type { ShellScriptCriteria } from "../types/windowsScriptGenerator";
 
 const initialCriteria: ShellScriptCriteria = {
@@ -10,7 +10,7 @@ const initialCriteria: ShellScriptCriteria = {
 
 export function useWindowsScriptGenerator() {
   const [criteria, setCriteria] = useState<ShellScriptCriteria>(initialCriteria);
-  const generatedScript = generateWindowsCopyScript(criteria);
+  const generatedScript = generateWindowsMoveScript(criteria);
 
   const updateCriteria = (
     field: "sourcePath" | "destinationPath",

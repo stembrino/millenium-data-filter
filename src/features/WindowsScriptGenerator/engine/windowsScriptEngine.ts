@@ -7,7 +7,7 @@ const quotePowerShell = (value: string) => value.replace(/'/g, "''");
 const ensureXmlExtension = (fileName: string) =>
   fileName.toLowerCase().endsWith(".xml") ? fileName : `${fileName}.xml`;
 
-export const generateWindowsCopyScript = (
+export const generateWindowsMoveScript = (
   criteria: ShellScriptCriteria,
 ): GeneratedShellScript => {
   const sourcePath = criteria.sourcePath.trim();
@@ -32,7 +32,7 @@ export const generateWindowsCopyScript = (
       (fileName) => `    '${quotePowerShell(fileName)}'`,
     ),
     ")",
-    "$copiedCount = 0",
+    "$movedCount = 0",
     "$missingCount = 0",
     "$failedCount = 0",
     "",
@@ -64,11 +64,11 @@ export const generateWindowsCopyScript = (
     "",
     "        $resolvedSource = (Get-Item -LiteralPath $sourceFile).FullName",
     "        try {",
-    "            [System.IO.File]::Copy($resolvedSource, $resolvedTarget, $true)",
-    '            Write-Host "[SUCCESS] Copied: $([System.IO.Path]::GetFileName($targetFile))" -ForegroundColor Green',
-    "            $copiedCount++",
+    "            [System.IO.File]::Move($resolvedSource, $resolvedTarget)",
+    '            Write-Host "[SUCCESS] Moved: $([System.IO.Path]::GetFileName($targetFile))" -ForegroundColor Green',
+    "            $movedCount++",
     "        } catch {",
-    '            Write-Host "[ERROR] Failed to copy ${fileName}: $($_.Exception.Message)" -ForegroundColor Red',
+    '            Write-Host "[ERROR] Failed to move ${fileName}: $($_.Exception.Message)" -ForegroundColor Red',
     "            $failedCount++",
     "        }",
     "    } else {",
