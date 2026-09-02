@@ -13,10 +13,13 @@ describe("generateWindowsCopyScript", () => {
     expect(result.content).toContain("'invoice.xml'");
     expect(result.content).toContain("'report.xml'");
     expect(result.content).toContain("foreach ($fileName in $files)");
-    expect(result.content).toContain("[System.IO.File]::Exists($win32Target)");
+    expect(result.content).toContain("[System.IO.File]::Exists($resolvedTarget)");
     expect(result.content).toContain(
-      "[System.IO.File]::Copy($win32Source, $win32Target, $true)",
+      "[System.IO.File]::Copy($resolvedSource, $resolvedTarget, $true)",
     );
+    expect(result.content).toContain("try {");
+    expect(result.content).toContain('$failedCount++');
+    expect(result.content).toContain("exit 1");
     expect(result.content).toContain('$dots = "." * $counter');
     expect(result.content).toContain("$copiedCount++");
     expect(result.content).toContain("$missingCount++");
