@@ -20,6 +20,13 @@ describe("generateWindowsCopyScript", () => {
     expect(result.content).toContain("try {");
     expect(result.content).toContain('$failedCount++');
     expect(result.content).toContain("exit 1");
+    expect(result.content).toContain(
+      '(Read-Host "Tem certeza que deseja mover os arquivos da pasta [$SourceDir] para a pasta [$DestDir] yes/y/No?").Trim()',
+    );
+    expect(result.content).toContain(
+      "if ($confirmation -notin @('yes', 'y'))",
+    );
+    expect(result.content).toContain('Write-Host "Operacao cancelada."');
     expect(result.content).toContain('$dots = "." * $counter');
     expect(result.content).toContain("$copiedCount++");
     expect(result.content).toContain("$missingCount++");
